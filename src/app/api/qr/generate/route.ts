@@ -19,19 +19,40 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: "User ID is required" }, { status: 400 });
         }
 
-        // 1. Get Reseller Slug for prefixing
+        // 1. Get Reseller Slug for prefixing. If the user is not a reseller, fallback to their own account data.
         const { data: reseller, error: resellerError } = await supabase
             .from('resellers')
             .select('custom_domain, qr_quota')
             .eq('user_id', user_id)
             .single();
 
-        if (resellerError || !reseller) {
-            return NextResponse.json({ success: false, error: "Reseller profile not found" }, { status: 404 });
-        }
+        let slug = 'u';
+        let quota = 0;
 
-        const slug = reseller.custom_domain || 'u'; // Default to 'u' if no slug
-        const quota = reseller.qr_quota || 0;
+        if (reseller && !resellerError) {
+            slug = reseller.custom_domain || 'u';
+            quota = reseller.qr_quota || 0;
+        } else {
+            const { data: user, error: userError } = await supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', user_id)
+                .single();
+
+            if (userError || !user) {
+                return NextResponse.json({ success: false, error: "User profile not found" }, { status: 404 });
+            }
+
+            const normalizedSlug = (user.full_name || user.email || 'u')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+
+            slug = normalizedSlug || 'u';
+            quota = 0; // No reseller quota means unlimited generation for owner/admin accounts
+        }
 
         // 2. Find the highest existing serial for this SLUG to avoid collisions
         // We search globally by slug prefix because multiple users might have had the same slug 
