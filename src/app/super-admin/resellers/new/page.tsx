@@ -63,6 +63,7 @@ export default function OnboardPartnerPage() {
                 .insert([{
                     user_id: userData.id,
                     business_name: formData.business_name,
+                    reseller_name: formData.business_name,
                     custom_domain: formData.slug.toLowerCase().replace(/[^a-z0-9]/g, '-'),
                     qr_quota: formData.qr_quota,
                     status: 'active'
