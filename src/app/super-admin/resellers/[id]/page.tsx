@@ -83,7 +83,6 @@ export default function ResellerDetailPage() {
                 .update({
                     business_name: formData.business_name,
                     custom_domain: formData.custom_domain,
-                    brand_color: formData.brand_color,
                     status: formData.status
                 })
                 .eq('id', params.id);
